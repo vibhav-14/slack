@@ -1,0 +1,161 @@
+/*
+ * Margin design tokens.
+ * Scene: a student at a desk in the evening, laptop on, notes spread out —
+ * document-first like Notion, ink on white, colour only where it carries meaning.
+ * Strategy: Restrained. Cobalt for actions and selection; a highlighter yellow
+ * reserved for evidence; red/amber/neutral for priority tiers.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: oklch(1 0 0);
+  --bg-sidebar: oklch(0.977 0.004 250);
+  --surface: oklch(0.967 0.005 250);
+  --surface-2: oklch(0.94 0.007 250);
+  --line: oklch(0.91 0.006 250);
+  --line-strong: oklch(0.82 0.009 250);
+
+  /* Ink — ink and ink-2 both clear 7:1 on --bg and --bg-sidebar (AAA) */
+  --ink: oklch(0.22 0.014 252);
+  --ink-2: oklch(0.43 0.014 252);
+  --ink-3: oklch(0.6 0.012 252); /* icons and decorative only, never text */
+
+  /* Brand */
+  --primary: oklch(0.45 0.13 252); /* links, selected text — 7.4:1 on white */
+  --primary-fill: oklch(0.47 0.13 252); /* button fill; white text ≥ 7:1 */
+  --on-primary: oklch(1 0 0);
+  --primary-hover: oklch(0.41 0.12 252);
+  --primary-soft: oklch(0.95 0.022 252);
+  --primary-line: oklch(0.8 0.06 252);
+  --focus: oklch(0.55 0.15 252);
+
+  /* Evidence highlighter */
+  --highlight: oklch(0.925 0.11 98);
+  --on-highlight: oklch(0.22 0.014 252);
+
+  /* Semantic */
+  --danger: oklch(0.47 0.16 27);
+  --danger-soft: oklch(0.955 0.024 27);
+  --warn: oklch(0.45 0.09 65);
+  --warn-soft: oklch(0.96 0.04 85);
+  --success: oklch(0.44 0.1 155);
+  --success-soft: oklch(0.955 0.03 155);
+
+  /* Type */
+  --font-sans: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --t-sm: 0.875rem;
+  --t-base: 1rem;
+  --t-md: 1.125rem;
+  --t-lg: 1.3125rem;
+  --t-xl: 1.625rem;
+  --t-2xl: 2rem;
+  --lh: 1.6;
+  --lh-tight: 1.25;
+  --tracking: 0.005em;
+  --word-spacing: normal;
+
+  /* Space (4px base) */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+  --s-8: 4rem;
+
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+
+  --shadow-pop: 0 1px 2px oklch(0.2 0.02 252 / 0.08), 0 8px 24px oklch(0.2 0.02 252 / 0.12);
+
+  --sidebar-w: 16rem;
+  --page-w: 60rem;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* quint */
+  --dur-fast: 120ms;
+  --dur: 180ms;
+
+  /* z-index scale */
+  --z-sticky: 10;
+  --z-drawer-backdrop: 30;
+  --z-drawer: 40;
+  --z-popover: 50;
+  --z-toast: 60;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: oklch(0.18 0.006 252);
+    --bg-sidebar: oklch(0.155 0.006 252);
+    --surface: oklch(0.215 0.008 252);
+    --surface-2: oklch(0.255 0.009 252);
+    --line: oklch(0.29 0.009 252);
+    --line-strong: oklch(0.38 0.011 252);
+    --ink: oklch(0.945 0.006 252);
+    --ink-2: oklch(0.79 0.012 252);
+    --ink-3: oklch(0.6 0.012 252);
+    --primary: oklch(0.8 0.09 252);
+    --primary-fill: oklch(0.8 0.09 252);
+    --on-primary: oklch(0.17 0.02 252);
+    --primary-hover: oklch(0.86 0.07 252);
+    --primary-soft: oklch(0.27 0.04 252);
+    --primary-line: oklch(0.45 0.08 252);
+    --focus: oklch(0.78 0.11 252);
+    --highlight: oklch(0.42 0.08 95);
+    --on-highlight: oklch(0.97 0.01 95);
+    --danger: oklch(0.8 0.1 27);
+    --danger-soft: oklch(0.28 0.05 27);
+    --warn: oklch(0.85 0.1 82);
+    --warn-soft: oklch(0.28 0.04 82);
+    --success: oklch(0.82 0.1 155);
+    --success-soft: oklch(0.26 0.04 155);
+    --shadow-pop: 0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px oklch(0 0 0 / 0.4);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: oklch(0.18 0.006 252);
+  --bg-sidebar: oklch(0.155 0.006 252);
+  --surface: oklch(0.215 0.008 252);
+  --surface-2: oklch(0.255 0.009 252);
+  --line: oklch(0.29 0.009 252);
+  --line-strong: oklch(0.38 0.011 252);
+  --ink: oklch(0.945 0.006 252);
+  --ink-2: oklch(0.79 0.012 252);
+  --ink-3: oklch(0.6 0.012 252);
+  --primary: oklch(0.8 0.09 252);
+  --primary-fill: oklch(0.8 0.09 252);
+  --on-primary: oklch(0.17 0.02 252);
+  --primary-hover: oklch(0.86 0.07 252);
+  --primary-soft: oklch(0.27 0.04 252);
+  --primary-line: oklch(0.45 0.08 252);
+  --focus: oklch(0.78 0.11 252);
+  --highlight: oklch(0.42 0.08 95);
+  --on-highlight: oklch(0.97 0.01 95);
+  --danger: oklch(0.8 0.1 27);
+  --danger-soft: oklch(0.28 0.05 27);
+  --warn: oklch(0.85 0.1 82);
+  --warn-soft: oklch(0.28 0.04 82);
+  --success: oklch(0.82 0.1 155);
+  --success-soft: oklch(0.26 0.04 155);
+  --shadow-pop: 0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px oklch(0 0 0 / 0.4);
+}
+
+/* Reading preferences (Settings → Reading) */
+:root[data-text="large"] { font-size: 112.5%; }
+:root[data-text="larger"] { font-size: 125%; }
+:root[data-spacing="relaxed"] {
+  --lh: 1.85;
+  --tracking: 0.03em;
+  --word-spacing: 0.12em;
+}
+:root[data-font="system"] {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
