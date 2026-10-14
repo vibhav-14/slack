@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Info } from "lucide-react";
 import { useSubjects, useTopics, useUnitsLookup } from "../api/hooks";
 import type { PriorityTier, Subject, Topic } from "../api/types";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
@@ -8,6 +8,7 @@ import { Empty, ErrorBlock, PageSkeleton, PriorityTag, Score, Segmented } from "
 import { FactorList } from "../components/FactorList";
 import { TopicStatusSelect } from "../components/TopicStatusSelect";
 import { ScoringNote } from "../components/ScoringNote";
+import { shortCode } from "../lib/subjects";
 
 type TierFilter = "all" | PriorityTier;
 
@@ -33,6 +34,17 @@ export function PrioritiesPage() {
 
   if (topics.isLoading || subjects.isLoading) return <PageSkeleton lines={10} />;
   if (topics.error || !topics.data) return <ErrorBlock error={topics.error} onRetry={() => topics.refetch()} />;
+  if (!topics.data.length) {
+    return (
+      <div className="page">
+        <h1 className="page-title">Priorities</h1>
+        <Empty title="Nothing to rank yet" action={<Link to="/sources" className="btn btn-primary">Upload material</Link>}>
+          Topics come from your lecture slides and syllabus. Upload them and every topic gets a score with the evidence
+          behind it.
+        </Empty>
+      </div>
+    );
+  }
 
   const subjectById = new Map(subjects.data?.map((s) => [s.id, s]));
   const rows = topics.data.filter(
@@ -41,6 +53,11 @@ export function PrioritiesPage() {
       (tier === "all" || t.priority.tier === tier) &&
       (!hideDone || t.status !== "done"),
   );
+  const missing = [
+    ...new Set(
+      topics.data.flatMap((t) => t.priority.factors.filter((f) => !f.available).map((f) => f.label)),
+    ),
+  ].filter((label) => topics.data.every((t) => t.priority.factors.some((f) => f.label === label && !f.available)));
   const counts = {
     high: topics.data.filter((t) => t.priority.tier === "high").length,
     medium: topics.data.filter((t) => t.priority.tier === "medium").length,
@@ -53,8 +70,8 @@ export function PrioritiesPage() {
         <div>
           <h1 className="page-title">Priorities</h1>
           <p className="page-lede">
-            Every topic in your syllabus, ranked by how often it's examined, how many marks it carries, and how well you
-            know it. Open a row to see the evidence behind its score.
+            Every topic, ranked by the evidence in your material: what the slides say the assessment will ask, how
+            often it's examined, how many marks it carries, and how well you answer it. Open a row to see why.
           </p>
         </div>
       </div>
@@ -68,13 +85,26 @@ export function PrioritiesPage() {
         <dd>{plural(counts.low, "topic")}</dd>
       </dl>
 
+      {missing.length > 0 && (
+        <div className="callout" style={{ marginTop: "var(--s-5)" }}>
+          <Info size={18} aria-hidden="true" />
+          <p>
+            Not counted yet: {missing.join(", ").toLowerCase()}. <Link to="/sources">Upload past papers or the syllabus</Link>{" "}
+            and rankings will take them into account.
+          </p>
+        </div>
+      )}
+
       <section className="section">
         <div className="toolbar">
           <Segmented
             label="Filter by subject"
             value={subject}
             onChange={(v) => setParam("subject", v)}
-            options={[{ value: "all", label: "All subjects" }, ...(subjects.data ?? []).map((s) => ({ value: s.id, label: s.code }))]}
+            options={[
+              { value: "all", label: "All subjects" },
+              ...(subjects.data ?? []).filter((s) => topics.data.some((t) => t.subjectId === s.id)).map((s) => ({ value: s.id, label: shortCode(s) })),
+            ]}
           />
           <Segmented<TierFilter>
             label="Filter by priority"
@@ -175,7 +205,7 @@ export function PriorityTable({
                     <Score score={t.priority.score} />
                   </td>
                   <td className="col-num" data-label="Past papers">
-                    {t.papers.asked} of {t.papers.total}
+                    {t.papers.total ? `${t.papers.asked} of ${t.papers.total}` : <span className="muted">—</span>}
                   </td>
                   <td className="col-num" data-label="Quiz accuracy">
                     {t.mastery === null ? <span className="muted">No data</span> : `${Math.round(t.mastery * 100)}%`}

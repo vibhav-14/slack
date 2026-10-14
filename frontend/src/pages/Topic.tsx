@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { BookOpen, FileText, Gauge, ListChecks, NotebookPen, Signal, Target } from "lucide-react";
-import { useCreateQuiz, useSubjects, useTopic, useUnitsLookup } from "../api/hooks";
-import type { EvidenceKind } from "../api/types";
+import { BookOpen, CircleHelp, FileText, Gauge, GraduationCap, ListChecks, NotebookPen, Presentation, Signal, Target } from "lucide-react";
+import { useCreateQuiz, useGenerateQuestions, useProfile, useSubjects, useTopic, useUnitsLookup } from "../api/hooks";
+import type { Evidence, EvidenceKind } from "../api/types";
 import { timeAgo } from "../lib/dates";
 import { isWeak } from "../lib/constants";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
@@ -10,21 +10,22 @@ import { FactorList } from "../components/FactorList";
 import { TopicStatusSelect } from "../components/TopicStatusSelect";
 import { useToast } from "../components/Toast";
 
-const kindIcon: Record<EvidenceKind, typeof FileText> = {
-  past_paper: FileText,
-  syllabus: BookOpen,
-  notes: NotebookPen,
-  quiz: Target,
-};
-
-const kindOrder: EvidenceKind[] = ["past_paper", "syllabus", "notes", "quiz"];
+const GROUPS: { kind: EvidenceKind; title: string; icon: typeof FileText }[] = [
+  { kind: "assessment", title: "What you'll be assessed on", icon: Target },
+  { kind: "past_paper", title: "Past paper questions", icon: FileText },
+  { kind: "syllabus", title: "Syllabus and course outcomes", icon: BookOpen },
+  { kind: "slides", title: "From the lecture slides", icon: Presentation },
+  { kind: "notes", title: "From your notes", icon: NotebookPen },
+];
 
 export function TopicPage() {
   const { id = "" } = useParams();
   const q = useTopic(id);
   const subjects = useSubjects();
+  const profile = useProfile();
   const unitTitle = useUnitsLookup();
   const createQuiz = useCreateQuiz();
+  const generate = useGenerateQuestions();
   const navigate = useNavigate();
   const toast = useToast();
   useDocumentTitle(q.data?.title);
@@ -35,16 +36,22 @@ export function TopicPage() {
   const t = q.data;
   const subject = subjects.data?.find((s) => s.id === t.subjectId);
   const terms = termsFor(t.title, t.concepts);
-  const evidence = [...t.evidence].sort((a, b) => kindOrder.indexOf(a.kind) - kindOrder.indexOf(b.kind));
   const papers = t.evidence.filter((e) => e.kind === "past_paper");
   const totalMarks = papers.reduce((n, e) => n + (e.marks ?? 0), 0);
   const statByConcept = new Map(t.conceptStats.map((c) => [c.concept, c]));
+  const nQuestions = t.questionCounts.slides + t.questionCounts.claude;
 
   const practise = () =>
     createQuiz.mutate(
-      { mode: "topics", topicIds: [t.id], count: 6 },
+      { mode: "topics", topicIds: [t.id], count: 8 },
       { onSuccess: (quiz) => navigate(`/practice/${quiz.id}`), onError: (e) => toast(e.message, { error: true }) },
     );
+
+  const writeMore = () =>
+    generate.mutate(t.id, {
+      onSuccess: ({ added }) => toast(added ? `Added ${added} questions written from your slides.` : "No new questions this time."),
+      onError: (e) => toast(e.message, { error: true }),
+    });
 
   return (
     <div className="page">
@@ -56,11 +63,13 @@ export function TopicPage() {
       />
       <div className="page-head">
         <h1 className="page-title">{t.title}</h1>
-        <div className="page-actions">
-          <Button onClick={practise} busy={createQuiz.isPending}>
-            Practise this topic
-          </Button>
-        </div>
+        {nQuestions > 0 && (
+          <div className="page-actions">
+            <Button onClick={practise} busy={createQuiz.isPending}>
+              Practise this topic
+            </Button>
+          </div>
+        )}
       </div>
 
       <dl className="props">
@@ -77,6 +86,17 @@ export function TopicPage() {
         <dd>
           <TopicStatusSelect topic={t} size="sm" />
         </dd>
+        {(t.courseOutcome || t.bloom) && (
+          <>
+            <dt>
+              <GraduationCap size={16} aria-hidden="true" /> Outcome
+            </dt>
+            <dd>
+              {[t.courseOutcome, t.bloom && `Bloom ${t.bloom}`].filter(Boolean).join(" · ")}
+              {t.sessionNumber && <span className="muted">· Session {t.sessionNumber}</span>}
+            </dd>
+          </>
+        )}
         <dt>
           <Gauge size={16} aria-hidden="true" /> Quiz accuracy
         </dt>
@@ -88,18 +108,42 @@ export function TopicPage() {
           )}
         </dd>
         <dt>
+          <CircleHelp size={16} aria-hidden="true" /> Quiz questions
+        </dt>
+        <dd>
+          <span className="num">{nQuestions}</span>
+          <span className="muted">
+            {t.questionCounts.claude
+              ? `· ${t.questionCounts.slides} from slide tables, ${t.questionCounts.claude} written by Claude`
+              : "· from the slides' tables and misconceptions"}
+          </span>
+          {profile.data?.aiAvailable && (
+            <Button size="sm" variant="ghost" onClick={writeMore} busy={generate.isPending}>
+              Write more with Claude
+            </Button>
+          )}
+        </dd>
+        <dt>
           <FileText size={16} aria-hidden="true" /> In past papers
         </dt>
         <dd>
-          <span className="num">
-            {t.papers.asked} of {t.papers.total} papers
-          </span>
-          {papers.length > 0 && <span className="muted">· {totalMarks} marks asked in total</span>}
+          {t.papers.total ? (
+            <>
+              <span className="num">
+                {t.papers.asked} of {t.papers.total} papers
+              </span>
+              {papers.length > 0 && <span className="muted">· {totalMarks} marks asked in total</span>}
+            </>
+          ) : (
+            <span className="muted">
+              No past papers uploaded. <Link to="/sources">Add them</Link> to rank by exam frequency.
+            </span>
+          )}
         </dd>
       </dl>
 
       <section className="section" aria-labelledby="why">
-        <SectionHead id="why" title="Why it's ranked here" note="Points each factor contributes to the score." />
+        <SectionHead id="why" title="Why it's ranked here" note="Points each factor contributes. Factors without evidence yet aren't counted." />
         <FactorList priority={t.priority} />
       </section>
 
@@ -107,40 +151,26 @@ export function TopicPage() {
         <SectionHead
           id="evidence"
           title="Evidence"
-          note={
-            <>
-              {evidence.length} item{evidence.length === 1 ? "" : "s"} from your sources. Highlighted words are what linked
-              each question to this topic.
-            </>
-          }
+          note={`${t.evidence.length} item${t.evidence.length === 1 ? "" : "s"} taken from your sources.`}
         />
-        <ul className="evidence">
-          {evidence.map((e) => {
-            const Icon = kindIcon[e.kind];
-            return (
-              <li key={e.id} className="evidence-item">
-                <span className="evidence-icon" aria-hidden="true">
-                  <Icon size={16} />
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <div className="evidence-label">{e.label}</div>
-                  <p className="evidence-quote">
-                    {e.kind === "past_paper" ? <Highlight text={e.excerpt} terms={terms} /> : e.excerpt}
-                  </p>
-                </div>
-                {e.marks !== undefined && (
-                  <span className="marks">
-                    {e.marks} <span className="muted small">marks</span>
-                  </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        {GROUPS.map(({ kind, title, icon }) => {
+          const items = t.evidence.filter((e) => e.kind === kind);
+          if (!items.length) return null;
+          return (
+            <div key={kind} className="evidence-group">
+              <h3 className="evidence-group-title">{title}</h3>
+              <ul className="evidence">
+                {items.map((e) => (
+                  <EvidenceRow key={e.id} e={e} Icon={icon} terms={terms} />
+                ))}
+              </ul>
+            </div>
+          );
+        })}
       </section>
 
       <section className="section" aria-labelledby="concepts">
-        <SectionHead id="concepts" title="Concepts" note="Tracked from your quiz answers. Under 60% counts as weak." />
+        <SectionHead id="concepts" title="Concepts" note="From the session agenda. Tracked from your quiz answers; under 60% counts as weak." />
         <div className="table-wrap">
           <table className="table table-stack">
             <thead>
@@ -179,5 +209,30 @@ export function TopicPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function EvidenceRow({ e, Icon, terms }: { e: Evidence; Icon: typeof FileText; terms: string[] }) {
+  return (
+    <li className="evidence-item">
+      <span className="evidence-icon" aria-hidden="true">
+        <Icon size={16} />
+      </span>
+      <div style={{ minWidth: 0 }}>
+        <div className="evidence-label">{e.label}</div>
+        <p className="evidence-quote">{e.kind === "past_paper" ? <Highlight text={e.excerpt} terms={terms} /> : e.excerpt}</p>
+      </div>
+      {e.marks !== null ? (
+        <span className="marks">
+          {e.marks} <span className="muted small">marks</span>
+        </span>
+      ) : e.level ? (
+        <span className="tag tag-plain" title={`Bloom level ${e.level}`}>
+          {e.level}
+        </span>
+      ) : (
+        <span />
+      )}
+    </li>
   );
 }
