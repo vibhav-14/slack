@@ -1,10 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
-import { CalendarClock, Clock, FlaskConical, FileWarning } from "lucide-react";
+import { CalendarClock, Clock, FlaskConical, FileWarning, Upload } from "lucide-react";
 import { useCreateQuiz, useLabs, useOverview, useSources, useTopics } from "../api/hooks";
 import { daysUntil, fmt, minutesLabel, relativeDays, today } from "../lib/dates";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { Button, Dots, Empty, ErrorBlock, Meter, PageSkeleton, SectionHead, recordStatusLabel } from "../components/ui";
 import { SessionRow } from "../components/SessionRow";
+import { ClassList } from "../components/ClassList";
 import { useToast } from "../components/Toast";
 
 export function TodayPage() {
@@ -24,20 +25,38 @@ export function TodayPage() {
   const topicById = new Map(topics.data?.map((t) => [t.id, t]));
   const subjectById = new Map(o.subjects.map((s) => [s.id, s]));
   const labById = new Map(labs.data?.labs.map((l) => [l.id, l]));
-  const nextExam = [...o.subjects].sort((a, b) => a.examDate.localeCompare(b.examDate))[0];
+  const withTopics = o.subjects.filter((s) => s.topicsTotal > 0);
+  const nextExam = [...withTopics].sort((a, b) => a.examDate.localeCompare(b.examDate))[0];
   const minutesLeft = o.todaySessions.filter((s) => !s.done).reduce((n, s) => n + s.minutes, 0);
   const doneCount = o.todaySessions.filter((s) => s.done).length;
-  const dueThisWeek = o.dueExperiments.filter((e) => daysUntil(e.due) <= 7);
+  const dueThisWeek = o.dueExperiments.filter((e) => e.due && daysUntil(e.due) <= 7);
   const failed = sources.data?.filter((s) => s.status === "failed") ?? [];
+  const isEmpty = o.subjects.length === 0;
 
   const practiseWeak = () =>
     createQuiz.mutate(
       { mode: "weak", count: 8 },
-      {
-        onSuccess: (q) => navigate(`/practice/${q.id}`),
-        onError: (e) => toast(e.message, { error: true }),
-      },
+      { onSuccess: (q) => navigate(`/practice/${q.id}`), onError: (e) => toast(e.message, { error: true }) },
     );
+
+  if (isEmpty) {
+    return (
+      <div className="page">
+        <h1 className="page-title">{fmt.long(today())}</h1>
+        <Empty
+          title="Start with your timetable and lecture slides"
+          action={
+            <Link to="/sources" className="btn btn-primary">
+              <Upload size={16} aria-hidden="true" /> Add material
+            </Link>
+          }
+        >
+          The timetable gives Slack your subjects, labs and class times. Lecture slides give it topics, what the
+          assessment will ask, and quiz questions. Priorities and a revision plan follow from those.
+        </Empty>
+      </div>
+    );
+  }
 
   return (
     <div className="page">
@@ -53,6 +72,7 @@ export function TodayPage() {
               <Link to={`/subjects/${nextExam.id}`}>{nextExam.name}</Link>
               <span className="muted">
                 {fmt.weekday(nextExam.examDate)} · {relativeDays(nextExam.examDate)}
+                {!nextExam.examDateConfirmed && " · estimated"}
               </span>
             </dd>
           </>
@@ -69,7 +89,7 @@ export function TodayPage() {
               </span>
             </>
           ) : (
-            <span className="muted">Rest day</span>
+            <span className="muted">Nothing planned</span>
           )}
         </dd>
         <dt>
@@ -97,17 +117,24 @@ export function TodayPage() {
             ) : (
               <>{failed.length} files couldn't be read, so they aren't counted as evidence. </>
             )}
-            <Link to="/sources">Fix in Sources</Link>
+            <Link to="/sources">See why in Sources</Link>
           </p>
         </div>
       )}
 
+      {o.todayClasses.length > 0 && (
+        <section className="section" aria-labelledby="today-classes">
+          <SectionHead id="today-classes" title="Classes today">
+            <Link to="/timetable" className="btn btn-sm">
+              Timetable
+            </Link>
+          </SectionHead>
+          <ClassList slots={o.todayClasses} />
+        </section>
+      )}
+
       <section className="section" aria-labelledby="today-sessions">
-        <SectionHead
-          id="today-sessions"
-          title="Today's sessions"
-          note="Picked from your revision plan, highest priority first."
-        >
+        <SectionHead id="today-sessions" title="Study today" note="From your revision plan, highest priority first.">
           <Link to="/plan" className="btn btn-sm">
             Full plan
           </Link>
@@ -121,7 +148,7 @@ export function TodayPage() {
           </ul>
         ) : (
           <Empty title="Nothing planned for today" action={<Link to="/plan" className="btn btn-sm">Open revision plan</Link>}>
-            Today is a rest day in your plan. You can still practise weak concepts below.
+            Today is a rest day in your plan, or everything is already scheduled for later.
           </Empty>
         )}
       </section>
@@ -136,36 +163,38 @@ export function TodayPage() {
             )}
           </SectionHead>
           {o.weakest.length ? (
-            <ul className="list-plain">
-              {o.weakest.map((c) => {
-                const t = topicById.get(c.topicId);
-                return (
-                  <li key={`${c.topicId}-${c.concept}`}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 500 }}>{c.concept}</div>
-                      {t && (
-                        <Link to={`/topics/${t.id}`} className="row-sub">
-                          {t.title}
-                        </Link>
-                      )}
-                    </div>
-                    <div className="row" style={{ flexWrap: "nowrap" }}>
-                      <Dots results={c.recent} />
-                      <span className="num small" style={{ minWidth: "3ch", textAlign: "right" }}>
-                        {Math.round((c.correct / c.attempts) * 100)}%
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <>
+              <ul className="list-plain">
+                {o.weakest.map((c) => {
+                  const t = topicById.get(c.topicId);
+                  return (
+                    <li key={`${c.topicId}-${c.concept}`}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 500 }}>{c.concept}</div>
+                        {t && (
+                          <Link to={`/topics/${encodeURIComponent(t.id)}`} className="row-sub">
+                            {t.title}
+                          </Link>
+                        )}
+                      </div>
+                      <div className="row" style={{ flexWrap: "nowrap" }}>
+                        <Dots results={c.recent} />
+                        <span className="num small" style={{ minWidth: "3ch", textAlign: "right" }}>
+                          {Math.round((c.correct / c.attempts) * 100)}%
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="small" style={{ marginTop: "var(--s-3)" }}>
+                <Link to="/weak">All weak concepts</Link>
+              </p>
+            </>
           ) : (
-            <Empty title="No weak concepts yet">Take a practice quiz and anything you score under 60% on will show up here.</Empty>
-          )}
-          {o.weakest.length > 0 && (
-            <p className="small" style={{ marginTop: "var(--s-3)" }}>
-              <Link to="/weak">All weak concepts</Link>
-            </p>
+            <Empty title="No weak concepts yet" action={<Link to="/practice" className="btn btn-sm">Take a quiz</Link>}>
+              Anything you answer correctly less than 60% of the time shows up here.
+            </Empty>
           )}
         </section>
 
@@ -174,7 +203,7 @@ export function TodayPage() {
           {o.dueExperiments.length ? (
             <ul className="list-plain">
               {o.dueExperiments.map((e) => {
-                const days = daysUntil(e.due);
+                const days = e.due ? daysUntil(e.due) : null;
                 return (
                   <li key={e.id}>
                     <div style={{ minWidth: 0 }}>
@@ -185,36 +214,45 @@ export function TodayPage() {
                         {labById.get(e.labId)?.name} · {recordStatusLabel[e.status]}
                       </span>
                     </div>
-                    <span className={`small${days <= 2 ? " due-soon" : " muted"}`} style={{ whiteSpace: "nowrap" }}>
-                      {days < 0 ? `Overdue ${-days}d` : `Due ${relativeDays(e.due)}`}
-                    </span>
+                    {e.due && days !== null && (
+                      <span className={`small${days <= 2 ? " due-soon" : " muted"}`} style={{ whiteSpace: "nowrap" }}>
+                        {days < 0 ? `Overdue ${-days}d` : `Due ${relativeDays(e.due)}`}
+                      </span>
+                    )}
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <Empty title="All records are written">Nothing left to write up. Get the written ones checked before the practical exam.</Empty>
+            <Empty title="No records due" action={<Link to="/labs" className="btn btn-sm">Lab records</Link>}>
+              Add experiments to your labs as they're assigned and Slack will track their due dates.
+            </Empty>
           )}
-          <p className="small" style={{ marginTop: "var(--s-3)" }}>
-            <Link to="/labs">All lab records</Link>
-          </p>
         </section>
       </div>
 
-      <section className="section" aria-labelledby="today-coverage">
-        <SectionHead id="today-coverage" title="Syllabus coverage" note="Topics marked done, per subject." />
-        <ul className="coverage">
-          {o.subjects.map((s) => (
-            <li key={s.id}>
-              <Link to={`/subjects/${s.id}`}>{s.name}</Link>
-              <Meter value={s.topicsDone / s.topicsTotal} label={`${s.name}: ${s.topicsDone} of ${s.topicsTotal} topics done`} tone="success" />
-              <span className="small muted num" style={{ textAlign: "right" }}>
-                {s.topicsDone}/{s.topicsTotal} topics
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {withTopics.length > 0 && (
+        <section className="section" aria-labelledby="today-coverage">
+          <SectionHead id="today-coverage" title="Syllabus coverage" note="Topics marked done, per subject." />
+          <ul className="coverage">
+            {withTopics.map((s) => (
+              <li key={s.id}>
+                <Link to={`/subjects/${s.id}`}>{s.name}</Link>
+                <Meter value={s.topicsDone / s.topicsTotal} label={`${s.name}: ${s.topicsDone} of ${s.topicsTotal} topics done`} tone="success" />
+                <span className="small muted num" style={{ textAlign: "right" }}>
+                  {s.topicsDone}/{s.topicsTotal} topics
+                </span>
+              </li>
+            ))}
+          </ul>
+          {withTopics.length < o.subjects.length && (
+            <p className="small muted" style={{ marginTop: "var(--s-3)" }}>
+              {o.subjects.length - withTopics.length} subjects have no topics yet.{" "}
+              <Link to="/sources">Upload their slides or syllabus</Link>.
+            </p>
+          )}
+        </section>
+      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { WeakPage } from "./pages/Weak";
 import { LabsPage } from "./pages/Labs";
 import { SourcesPage } from "./pages/Sources";
 import { SettingsPage } from "./pages/Settings";
+import { TimetablePage } from "./pages/Timetable";
 
 export function App() {
   const { pathname } = useLocation();
@@ -26,6 +27,7 @@ export function App() {
         <Route path="priorities" element={<PrioritiesPage />} />
         <Route path="subjects/:id" element={<SubjectPage />} />
         <Route path="topics/:id" element={<TopicPage />} />
+        <Route path="timetable" element={<TimetablePage />} />
         <Route path="plan" element={<PlanPage />} />
         <Route path="practice" element={<PracticePage />} />
         <Route path="practice/:id" element={<QuizPage />} />
