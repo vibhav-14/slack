@@ -21,7 +21,7 @@ export function QuizPage() {
 }
 
 function draftKey(id: string) {
-  return `margin.quiz-draft.${id}`;
+  return `slack.quiz-draft.${id}`;
 }
 
 function TakeQuiz({ quiz }: { quiz: Quiz }) {
@@ -228,7 +228,10 @@ function Results({ quiz }: { quiz: Quiz }) {
                       );
                     })}
                   </div>
-                  <p className="q-explain">{q.explanation}</p>
+                  <p className="q-explain">
+                    {q.explanation}
+                    {q.slideRef && <span className="q-source">{q.origin === "claude" ? "Written by Claude from " : "From "}{q.slideRef}</span>}
+                  </p>
                 </li>
               );
             })}

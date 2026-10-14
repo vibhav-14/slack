@@ -1,15 +1,11 @@
 import { Link } from "react-router-dom";
-import type { PlanSession, SessionKind, Subject, Topic } from "../api/types";
+import type { PlanSession, Subject, Topic } from "../api/types";
 import { useToggleSession } from "../api/hooks";
 import { minutesLabel } from "../lib/dates";
+import { sessionKindLabel } from "../lib/labels";
+import { shortCode } from "../lib/subjects";
 import { PriorityTag } from "./ui";
 import { useToast } from "./Toast";
-
-export const sessionKindLabel: Record<SessionKind, string> = {
-  learn: "Learn",
-  revise: "Revise",
-  practice: "Practice quiz",
-};
 
 export function SessionRow({
   session,
@@ -22,13 +18,11 @@ export function SessionRow({
 }) {
   const toggle = useToggleSession();
   const toast = useToast();
-  const id = `session-${session.id}`;
   const title = topic?.title ?? "Topic removed";
 
   return (
     <li className={`session${session.done ? " is-done" : ""}`}>
       <input
-        id={id}
         type="checkbox"
         className="check"
         checked={session.done}
@@ -42,7 +36,7 @@ export function SessionRow({
       />
       <div style={{ minWidth: 0 }}>
         {topic ? (
-          <Link to={`/topics/${topic.id}`} className="session-title">
+          <Link to={`/topics/${encodeURIComponent(topic.id)}`} className="session-title">
             {title}
           </Link>
         ) : (
@@ -51,8 +45,9 @@ export function SessionRow({
         <div className="session-meta">
           <span>{sessionKindLabel[session.kind]}</span>
           <span>{minutesLabel(session.minutes)}</span>
-          {subject && <span className="mono">{subject.code}</span>}
+          {subject && <span className="mono">{shortCode(subject)}</span>}
         </div>
+        {session.reason && <p className="session-reason">{session.reason}</p>}
       </div>
       {topic && <PriorityTag tier={topic.priority.tier} />}
     </li>

@@ -6,8 +6,20 @@ export function FactorList({ priority }: { priority: Priority }) {
   return (
     <ul className="factors">
       {priority.factors.map((f) => {
-        const pts = Math.round(f.value * f.weight * 100);
-        const max = Math.round(f.weight * 100);
+        if (!f.available || f.value === null) {
+          return (
+            <li key={f.key} className="factor is-unavailable">
+              <span className="factor-name">{f.label}</span>
+              <span className="meter meter-empty" aria-hidden="true" />
+              <span className="factor-detail">{f.detail}</span>
+              <span className="factor-pts" aria-label="Not counted">
+                —
+              </span>
+            </li>
+          );
+        }
+        const max = Math.round(f.effectiveWeight * 100);
+        const pts = Math.round(f.value * f.effectiveWeight * 100);
         return (
           <li key={f.key} className="factor">
             <span className="factor-name">{f.label}</span>

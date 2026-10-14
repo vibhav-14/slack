@@ -12,3 +12,7 @@ __pycache__/
 *.pyc
 .venv/
 *.tsbuildinfo
+
+# Local database and uploaded course material
+backend/data/
+.pytest_cache/

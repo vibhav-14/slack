@@ -10,7 +10,7 @@ A single university student (working example: B.Tech CSE, semester 5) managing t
 
 ## Product Purpose
 
-Margin turns syllabi, notes and exam patterns into a personal study system. It does not just generate notes. It ranks topics by evidence — how often a topic appears in past papers, how many marks it carries, how much syllabus time it gets, and how the student is actually performing on it — and shows that evidence next to every ranking. From that ranking it builds quizzes and a day-by-day revision plan, tracks weak concepts and completed units, and keeps lab records and practical submissions in order.
+Slack turns syllabi, notes and exam patterns into a personal study system. It does not just generate notes. It ranks topics by evidence — how often a topic appears in past papers, how many marks it carries, how much syllabus time it gets, and how the student is actually performing on it — and shows that evidence next to every ranking. From that ranking it builds quizzes and a day-by-day revision plan, tracks weak concepts and completed units, and keeps lab records and practical submissions in order.
 
 Success: the student can open the app, see the three things worth doing today, and understand *why* each one was chosen.
 

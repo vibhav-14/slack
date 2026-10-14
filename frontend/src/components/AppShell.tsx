@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   CalendarDays,
+  CalendarRange,
   CircleHelp,
   FileStack,
   FlaskConical,
@@ -12,9 +13,9 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { useConcepts, useSubjects, usePlan } from "../api/hooks";
-import { usingMock } from "../api/client";
+import { useConcepts, useProfile, useSubjects, usePlan } from "../api/hooks";
 import { isWeak } from "../lib/constants";
+import { shortCode } from "../lib/subjects";
 import { todayISO } from "../lib/dates";
 
 export function AppShell() {
@@ -42,7 +43,7 @@ export function AppShell() {
         <button type="button" className="btn btn-ghost btn-icon" aria-label="Open navigation" onClick={() => setOpen(true)}>
           <Menu size={20} />
         </button>
-        <span className="topbar-title">Margin</span>
+        <span className="topbar-title">Slack</span>
       </header>
 
       <Sidebar onClose={() => setOpen(false)} />
@@ -59,7 +60,10 @@ function Sidebar({ onClose }: { onClose: () => void }) {
   const subjects = useSubjects();
   const concepts = useConcepts();
   const plan = usePlan();
+  const profile = useProfile();
   const now = todayISO();
+  const p = profile.data;
+  const sub = p ? [p.semester ? `Semester ${p.semester}` : null, p.program].filter(Boolean).join(" · ") : "";
 
   const weakCount = concepts.data?.filter(isWeak).length;
   const todayLeft = plan.data?.sessions.filter((s) => s.date === now && !s.done).length;
@@ -75,8 +79,8 @@ function Sidebar({ onClose }: { onClose: () => void }) {
             </svg>
           </span>
           <span className="sb-brand-name">
-            Margin
-            <span className="sb-brand-sub">Semester 5 · B.Tech CSE</span>
+            Slack
+            {sub && <span className="sb-brand-sub">{sub}</span>}
           </span>
         </NavLink>
         <button type="button" className="btn btn-ghost btn-icon btn-sm close-drawer" aria-label="Close navigation" onClick={onClose}>
@@ -93,6 +97,10 @@ function Sidebar({ onClose }: { onClose: () => void }) {
         <NavLink to="/priorities" className="sb-link">
           <ListOrdered size={18} aria-hidden="true" />
           <span className="label">Priorities</span>
+        </NavLink>
+        <NavLink to="/timetable" className="sb-link">
+          <CalendarRange size={18} aria-hidden="true" />
+          <span className="label">Timetable</span>
         </NavLink>
         <NavLink to="/plan" className="sb-link">
           <CalendarDays size={18} aria-hidden="true" />
@@ -119,11 +127,16 @@ function Sidebar({ onClose }: { onClose: () => void }) {
         </p>
         {subjects.data?.map((s) => (
           <NavLink key={s.id} to={`/subjects/${s.id}`} className="sb-link">
-            <span className="sb-code">{s.code}</span>
+            <span className="sb-code">{shortCode(s)}</span>
             <span className="label">{s.name}</span>
           </NavLink>
         ))}
         {subjects.isLoading && <span className="skel" style={{ margin: "var(--s-2) var(--s-3)" }} />}
+        {subjects.data?.length === 0 && (
+          <NavLink to="/sources" className="sb-link">
+            <span className="label muted">Add your timetable or slides</span>
+          </NavLink>
+        )}
       </nav>
 
       <nav className="sb-nav sb-foot" aria-label="Workspace settings">
@@ -135,7 +148,7 @@ function Sidebar({ onClose }: { onClose: () => void }) {
           <Settings size={18} aria-hidden="true" />
           <span className="label">Settings</span>
         </NavLink>
-        {usingMock && <p className="sb-demo">Demo data · no backend connected</p>}
+        {subjects.isError && <p className="sb-demo">Can't reach the server</p>}
       </nav>
     </aside>
   );

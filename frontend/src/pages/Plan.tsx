@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { CalendarRange, Clock, RefreshCw } from "lucide-react";
+import { Link } from "react-router-dom";
+import { CalendarRange, Clock, Info, RefreshCw } from "lucide-react";
 import { usePlan, useRegeneratePlan, useSubjects, useTopics } from "../api/hooks";
 import type { PlanSession } from "../api/types";
 import { fmt, minutesLabel, relativeDays, timeAgo, todayISO } from "../lib/dates";
@@ -26,7 +27,9 @@ export function PlanPage() {
   const topicById = new Map(topics.data?.map((t) => [t.id, t]));
   const subjectById = new Map(subjects.data?.map((s) => [s.id, s]));
   const examsByDate = new Map<string, string[]>();
-  subjects.data?.forEach((s) => examsByDate.set(s.examDate, [...(examsByDate.get(s.examDate) ?? []), s.name]));
+  const plannedSubjects = (subjects.data ?? []).filter((s) => topics.data?.some((t) => t.subjectId === s.id));
+  plannedSubjects.forEach((s) => examsByDate.set(s.examDate, [...(examsByDate.get(s.examDate) ?? []), s.name]));
+  const estimated = plannedSubjects.filter((s) => !s.examDateConfirmed);
 
   const total = p.sessions.length;
   const done = p.sessions.filter((s) => s.done).length;
@@ -43,9 +46,20 @@ export function PlanPage() {
     <div className="page">
       <h1 className="page-title">Revision plan</h1>
       <p className="page-lede">
-        Built from your priorities: high-priority topics come first, each gets a practice quiz a couple of days after you
-        study it, and the week before each exam is kept for revision.
+        Built from your priorities and timetable: high-priority topics come first, a subject moves up on days you have
+        its lecture, each topic gets a practice quiz two days after you study it, and the week before each exam is kept
+        for revision.
       </p>
+
+      {estimated.length > 0 && (
+        <div className="callout" style={{ marginTop: "var(--s-5)" }}>
+          <Info size={18} aria-hidden="true" />
+          <p>
+            Exam dates for {estimated.map((s) => s.name).join(", ")} are estimates.{" "}
+            <Link to="/settings#exams">Set the real dates</Link> and rebuild the plan so nothing lands after an exam.
+          </p>
+        </div>
+      )}
 
       <dl className="props">
         <dt>
@@ -131,7 +145,7 @@ export function PlanPage() {
   );
 }
 
-function PlanSettings({ hoursPerDay, restDays, generatedAt }: { hoursPerDay: number; restDays: number[]; generatedAt: string }) {
+function PlanSettings({ hoursPerDay, restDays, generatedAt }: { hoursPerDay: number; restDays: number[]; generatedAt: string | null }) {
   const regenerate = useRegeneratePlan();
   const toast = useToast();
   const [hours, setHours] = useState(hoursPerDay);
@@ -147,7 +161,7 @@ function PlanSettings({ hoursPerDay, restDays, generatedAt }: { hoursPerDay: num
 
   return (
     <section className="section" aria-labelledby="plan-settings">
-      <SectionHead id="plan-settings" title="Plan settings" note={`Last generated ${timeAgo(generatedAt)}.`} />
+      <SectionHead id="plan-settings" title="Plan settings" note={generatedAt ? `Last generated ${timeAgo(generatedAt)}.` : "Not generated yet."} />
       <form
         className="stack"
         style={{ gap: "var(--s-4)" }}
