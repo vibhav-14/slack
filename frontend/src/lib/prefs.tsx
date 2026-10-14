@@ -8,7 +8,7 @@ export interface Prefs {
 }
 
 const DEFAULTS: Prefs = { theme: "system", textSize: "default", spacing: "normal", font: "hyperlegible" };
-const KEY = "margin.prefs.v1";
+const KEY = "slack.prefs.v1";
 
 function load(): Prefs {
   try {

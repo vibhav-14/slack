@@ -1,5 +1,4 @@
-// Shapes returned by the API. Field names are camelCase here; the FastAPI
-// backend should serialise Pydantic models with `alias_generator=to_camel`.
+// Shapes returned by the FastAPI backend (backend/app/services/views.py).
 
 export type ID = string;
 export type ISODate = string; // "2026-11-24"
@@ -17,40 +16,46 @@ export interface ExamPart {
 
 export interface Subject {
   id: ID;
-  code: string;
+  code: string; // official course code, or an abbreviation until one is known
+  officialCode: boolean;
   name: string;
+  faculty: string | null;
   examDate: ISODate;
-  examPattern: { totalMarks: number; durationMins: number; parts: ExamPart[] };
+  examDateConfirmed: boolean;
+  examPattern: { totalMarks: number; durationMins: number; parts: ExamPart[] } | null;
 }
 
 export interface Unit {
   id: ID;
   subjectId: ID;
   number: number;
-  title: string;
-  hours: number; // lecture hours from the syllabus
+  title: string | null;
+  hours: number | null;
 }
 
-export type EvidenceKind = "past_paper" | "syllabus" | "notes" | "quiz";
+export type EvidenceKind = "past_paper" | "syllabus" | "notes" | "slides" | "assessment" | "quiz";
 
 export interface Evidence {
   id: ID;
   topicId: ID;
   kind: EvidenceKind;
   sourceId: ID | null;
-  label: string; // "End-Sem May 2024 · Q3(b)"
-  marks?: number;
+  label: string;
+  marks: number | null;
+  level: string | null; // Bloom level, e.g. "K3"
   excerpt: string;
 }
 
-export type FactorKey = "frequency" | "marks" | "syllabus" | "weakness" | "coverage";
+export type FactorKey = "frequency" | "marks" | "syllabus" | "assessment" | "weakness" | "coverage";
 
 export interface PriorityFactor {
   key: FactorKey;
   label: string;
-  value: number; // 0..1, normalised
-  weight: number; // 0..1, sums to 1 across factors
-  detail: string; // human-readable reason
+  value: number | null; // 0..1; null when there is no evidence for this factor yet
+  weight: number; // nominal weight
+  effectiveWeight: number; // weight after sharing out unavailable factors
+  available: boolean;
+  detail: string;
 }
 
 export interface Priority {
@@ -66,18 +71,22 @@ export interface Topic {
   title: string;
   status: TopicStatus;
   concepts: string[];
+  sessionNumber: number | null;
+  courseOutcome: string | null;
+  bloom: string | null; // "K3 · Applying"
   priority: Priority;
-  mastery: number | null; // 0..1 from quiz history; null = fewer than 3 answers
+  mastery: number | null; // null until 3 quiz answers
   evidenceCount: number;
-  papers: { asked: number; total: number }; // past papers that asked this topic
+  papers: { asked: number; total: number };
 }
 
 export interface TopicDetail extends Topic {
   evidence: Evidence[];
   conceptStats: ConceptStat[];
+  questionCounts: { slides: number; claude: number };
 }
 
-export type SourceKind = "syllabus" | "notes" | "past_paper" | "exam_pattern";
+export type SourceKind = "syllabus" | "notes" | "past_paper" | "exam_pattern" | "slides" | "timetable";
 export type SourceStatus = "queued" | "processing" | "ready" | "failed";
 
 export interface Source {
@@ -89,9 +98,20 @@ export interface Source {
   sizeKb: number;
   uploadedAt: ISODateTime;
   status: SourceStatus;
-  extracted: { units: number; topics: number; questions: number } | null;
-  error?: string;
-  retryable?: boolean; // false when re-uploading in another format is the only fix
+  extracted: {
+    units?: number;
+    topics?: number;
+    questions?: number;
+    evidence?: number;
+    slots?: number;
+    subjects?: number;
+    summary?: string;
+    classes?: string[];
+    aiQuestions?: number;
+    aiError?: string;
+  } | null;
+  error: string | null;
+  retryable: boolean;
 }
 
 export interface QuizQuestion {
@@ -102,6 +122,8 @@ export interface QuizQuestion {
   options: string[];
   answerIndex: number;
   explanation: string;
+  origin: "slides" | "claude";
+  slideRef: string | null;
 }
 
 export interface Quiz {
@@ -112,7 +134,7 @@ export interface Quiz {
   questions: QuizQuestion[];
   answers: (number | null)[] | null;
   submittedAt: ISODateTime | null;
-  score: number | null; // correct count
+  score: number | null;
 }
 
 export interface ConceptStat {
@@ -121,7 +143,7 @@ export interface ConceptStat {
   subjectId: ID;
   attempts: number;
   correct: number;
-  recent: boolean[]; // oldest → newest, last 8 attempts
+  recent: boolean[];
   lastSeen: ISODateTime | null;
 }
 
@@ -134,10 +156,11 @@ export interface PlanSession {
   kind: SessionKind;
   minutes: number;
   done: boolean;
+  reason: string | null;
 }
 
 export interface Plan {
-  generatedAt: ISODateTime;
+  generatedAt: ISODateTime | null;
   hoursPerDay: number;
   restDays: number[]; // 0 = Sunday
   sessions: PlanSession[];
@@ -150,7 +173,8 @@ export interface LabCourse {
   code: string;
   name: string;
   subjectId: ID | null;
-  practicalExamDate: ISODate;
+  faculty: string | null;
+  practicalExamDate: ISODate | null;
 }
 
 export interface RecordChecklist {
@@ -168,15 +192,58 @@ export interface Experiment {
   title: string;
   aim: string;
   performedOn: ISODate | null;
-  due: ISODate;
+  due: ISODate | null;
   status: RecordStatus;
   checklist: RecordChecklist;
   attachments: { name: string; sizeKb: number }[];
   vivaQuestions: string[];
 }
 
+export interface Period {
+  number: number;
+  start: string; // "8:50"
+  end: string;
+}
+
+export interface TimetableSlot {
+  id: number;
+  day: number; // 0 = Monday
+  periods: number[];
+  start: string | null;
+  end: string | null;
+  title: string;
+  kind: "lecture" | "lab" | "other";
+  subjectId: ID | null;
+  labId: ID | null;
+  room: string | null;
+  faculty: string | null;
+  group: number | null;
+}
+
+export interface Timetable {
+  classLabel: string | null;
+  labGroup: number;
+  effectiveFrom: ISODate | null;
+  periods: Period[];
+  slots: TimetableSlot[];
+  availableClasses: string[];
+}
+
+export interface Profile {
+  program: string | null;
+  institution: string | null;
+  classLabel: string | null;
+  semester: number | null;
+  labGroup: number;
+  hoursPerDay: number;
+  restDays: number[];
+  timetableEffectiveFrom: ISODate | null;
+  aiAvailable: boolean;
+}
+
 export interface Overview {
   subjects: (Subject & { topicsDone: number; topicsTotal: number; unitsDone: number; unitsTotal: number })[];
+  todayClasses: TimetableSlot[];
   todaySessions: PlanSession[];
   dueExperiments: Experiment[];
   weakest: ConceptStat[];

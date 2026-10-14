@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { api } from "./client";
 import type {
   ConceptStat,
@@ -7,18 +7,24 @@ import type {
   Overview,
   Plan,
   PlanSession,
+  Profile,
   Quiz,
   Source,
   SourceKind,
   Subject,
+  Timetable,
   Topic,
   TopicDetail,
   TopicStatus,
   Unit,
 } from "./types";
 
+type Labs = { labs: LabCourse[]; experiments: Experiment[] };
+
 export const keys = {
   overview: ["overview"] as const,
+  profile: ["profile"] as const,
+  timetable: ["timetable"] as const,
   subjects: ["subjects"] as const,
   units: ["units"] as const,
   subject: (id: string) => ["subjects", id] as const,
@@ -32,21 +38,32 @@ export const keys = {
   labs: ["labs"] as const,
 };
 
+/** Anything derived from topics: rankings, plan, overview. */
+function invalidateStudyData(qc: QueryClient) {
+  for (const key of [["topics"], ["topic"], keys.subjects, keys.units, keys.overview, keys.plan, keys.concepts]) {
+    qc.invalidateQueries({ queryKey: key });
+  }
+}
+
 // ------------------------------------------------------------------ reads
 
 export const useOverview = () => useQuery({ queryKey: keys.overview, queryFn: () => api.get<Overview>("/overview") });
 
+export const useProfile = () => useQuery({ queryKey: keys.profile, queryFn: () => api.get<Profile>("/profile") });
+
+export const useTimetable = () => useQuery({ queryKey: keys.timetable, queryFn: () => api.get<Timetable>("/timetable") });
+
 export const useSubjects = () => useQuery({ queryKey: keys.subjects, queryFn: () => api.get<Subject[]>("/subjects") });
 
-export const useUnits = () => useQuery({ queryKey: keys.units, queryFn: () => api.get<Unit[]>("/units"), staleTime: Infinity });
+export const useUnits = () => useQuery({ queryKey: keys.units, queryFn: () => api.get<Unit[]>("/units") });
 
-/** unitId → "Unit 3 · Normalization" */
+/** unitId → "Unit 3 · Normalization" (or just "Unit 2" when the syllabus hasn't named it). */
 export function useUnitsLookup() {
   const units = useUnits();
   const byId = new Map(units.data?.map((u) => [u.id, u]));
   return (unitId: string) => {
     const u = byId.get(unitId);
-    return u ? `Unit ${u.number} · ${u.title}` : "";
+    return u ? (u.title ? `Unit ${u.number} · ${u.title}` : `Unit ${u.number}`) : "";
   };
 }
 
@@ -63,15 +80,29 @@ export const useTopics = (filter: Record<string, string> = {}) =>
   });
 
 export const useTopic = (id: string) =>
-  useQuery({ queryKey: keys.topic(id), queryFn: () => api.get<TopicDetail>(`/topics/${id}`) });
+  useQuery({ queryKey: keys.topic(id), queryFn: () => api.get<TopicDetail>(`/topics/${encodeURIComponent(id)}`) });
 
-export const useSources = () =>
-  useQuery({
+export const useSources = () => {
+  const qc = useQueryClient();
+  return useQuery({
     queryKey: keys.sources,
-    queryFn: () => api.get<Source[]>("/sources"),
+    queryFn: async () => {
+      const prev = qc.getQueryData<Source[]>(keys.sources);
+      const next = await api.get<Source[]>("/sources");
+      // A file just finished processing: its topics, subjects and labs are new.
+      const finished = next.some((s) => s.status === "ready" && prev?.find((p) => p.id === s.id)?.status !== "ready" && prev);
+      if (finished) {
+        invalidateStudyData(qc);
+        qc.invalidateQueries({ queryKey: keys.labs });
+        qc.invalidateQueries({ queryKey: keys.timetable });
+        qc.invalidateQueries({ queryKey: keys.profile });
+      }
+      return next;
+    },
     // Poll while anything is still being processed.
     refetchInterval: (q) => (q.state.data?.some((s) => s.status === "queued" || s.status === "processing") ? 1200 : false),
   });
+};
 
 export const useConcepts = () => useQuery({ queryKey: keys.concepts, queryFn: () => api.get<ConceptStat[]>("/concepts") });
 
@@ -81,29 +112,55 @@ export const useQuiz = (id: string) => useQuery({ queryKey: keys.quiz(id), query
 
 export const usePlan = () => useQuery({ queryKey: keys.plan, queryFn: () => api.get<Plan>("/plan") });
 
-export const useLabs = () =>
-  useQuery({ queryKey: keys.labs, queryFn: () => api.get<{ labs: LabCourse[]; experiments: Experiment[] }>("/labs") });
+export const useLabs = () => useQuery({ queryKey: keys.labs, queryFn: () => api.get<Labs>("/labs") });
 
 // --------------------------------------------------------------- mutations
+
+export function usePatchProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: Partial<Pick<Profile, "classLabel" | "labGroup" | "hoursPerDay" | "restDays">>) =>
+      api.patch<Profile>("/profile", patch),
+    onSuccess: (p) => {
+      qc.setQueryData(keys.profile, p);
+      qc.invalidateQueries({ queryKey: keys.timetable });
+      qc.invalidateQueries({ queryKey: keys.overview });
+    },
+  });
+}
+
+export function usePatchSubject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: { id: string; examDate?: string; name?: string; code?: string }) =>
+      api.patch<Subject>(`/subjects/${id}`, patch),
+    onSuccess: () => invalidateStudyData(qc),
+  });
+}
 
 export function useSetTopicStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: TopicStatus }) => api.patch<Topic>(`/topics/${id}`, { status }),
-    onSuccess: () => {
-      // Status feeds the coverage factor, so every ranking may shift.
-      qc.invalidateQueries({ queryKey: ["topics"] });
-      qc.invalidateQueries({ queryKey: ["topic"] });
-      qc.invalidateQueries({ queryKey: keys.subjects });
-      qc.invalidateQueries({ queryKey: keys.overview });
-    },
+    mutationFn: ({ id, status }: { id: string; status: TopicStatus }) =>
+      api.patch<Topic>(`/topics/${encodeURIComponent(id)}`, { status }),
+    // Status feeds the coverage factor, so every ranking may shift.
+    onSuccess: () => invalidateStudyData(qc),
+  });
+}
+
+export function useGenerateQuestions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (topicId: string) => api.post<{ added: number }>(`/topics/${encodeURIComponent(topicId)}/questions`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["topic"] }),
   });
 }
 
 export function useToggleSession() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, done }: { id: string; done: boolean }) => api.patch<PlanSession>(`/plan/sessions/${id}`, { done }),
+    mutationFn: ({ id, done }: { id: string; done: boolean }) =>
+      api.patch<PlanSession>(`/plan/sessions/${encodeURIComponent(id)}`, { done }),
     onMutate: async ({ id, done }) => {
       await qc.cancelQueries({ queryKey: keys.plan });
       const prevPlan = qc.getQueryData<Plan>(keys.plan);
@@ -131,6 +188,7 @@ export function useRegeneratePlan() {
     onSuccess: (plan) => {
       qc.setQueryData(keys.plan, plan);
       qc.invalidateQueries({ queryKey: keys.overview });
+      qc.invalidateQueries({ queryKey: keys.profile });
     },
   });
 }
@@ -138,8 +196,13 @@ export function useRegeneratePlan() {
 export function useUploadSource() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { filename: string; sizeKb: number; kind: SourceKind; subjectId: string | null }) =>
-      api.post<Source>("/sources", input),
+    mutationFn: ({ file, kind, subjectId }: { file: File; kind: SourceKind; subjectId: string | null }) => {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("kind", kind);
+      if (subjectId) form.append("subjectId", subjectId);
+      return api.upload<Source>("/sources", form);
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.sources }),
   });
 }
@@ -158,7 +221,7 @@ export function useDeleteSource() {
     mutationFn: (id: string) => api.del(`/sources/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.sources });
-      qc.invalidateQueries({ queryKey: keys.overview });
+      invalidateStudyData(qc);
     },
   });
 }
@@ -184,24 +247,22 @@ export function useSubmitQuiz() {
       qc.setQueryData(keys.quiz(quiz.id), quiz);
       // New answers change mastery → weakness factor → priorities.
       qc.invalidateQueries({ queryKey: keys.quizzes });
-      qc.invalidateQueries({ queryKey: keys.concepts });
-      qc.invalidateQueries({ queryKey: ["topics"] });
-      qc.invalidateQueries({ queryKey: ["topic"] });
-      qc.invalidateQueries({ queryKey: keys.subjects });
-      qc.invalidateQueries({ queryKey: keys.overview });
+      invalidateStudyData(qc);
     },
   });
 }
 
+type ExperimentPatch = Partial<Omit<Experiment, "checklist">> & { checklist?: Partial<Experiment["checklist"]> };
+
 export function useUpdateExperiment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: Partial<Experiment> }) => api.patch<Experiment>(`/experiments/${id}`, patch),
+    mutationFn: ({ id, patch }: { id: string; patch: ExperimentPatch }) => api.patch<Experiment>(`/experiments/${id}`, patch),
     onMutate: async ({ id, patch }) => {
       await qc.cancelQueries({ queryKey: keys.labs });
-      const prev = qc.getQueryData<{ labs: LabCourse[]; experiments: Experiment[] }>(keys.labs);
+      const prev = qc.getQueryData<Labs>(keys.labs);
       if (prev) {
-        qc.setQueryData(keys.labs, {
+        qc.setQueryData<Labs>(keys.labs, {
           ...prev,
           experiments: prev.experiments.map((e) =>
             e.id === id ? { ...e, ...patch, checklist: { ...e.checklist, ...(patch.checklist ?? {}) } } : e,
@@ -218,10 +279,32 @@ export function useUpdateExperiment() {
   });
 }
 
-export function useResetDemo() {
+function useLabsMutation<TVars, TData>(fn: (v: TVars) => Promise<TData>) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => api.post("/demo/reset"),
-    onSuccess: () => qc.invalidateQueries(),
+    mutationFn: fn,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.labs });
+      qc.invalidateQueries({ queryKey: keys.overview });
+    },
   });
 }
+
+export const useAddExperiment = () =>
+  useLabsMutation(({ labId, ...body }: { labId: string; title: string; aim?: string; due?: string | null }) =>
+    api.post<Experiment>(`/labs/${labId}/experiments`, body),
+  );
+
+export const useDeleteExperiment = () => useLabsMutation((id: string) => api.del(`/experiments/${id}`));
+
+export const usePatchLab = () =>
+  useLabsMutation(({ id, practicalExamDate }: { id: string; practicalExamDate: string | null }) =>
+    api.patch<LabCourse>(`/labs/${id}`, { practicalExamDate }),
+  );
+
+export const useAttachFile = () =>
+  useLabsMutation(({ id, file }: { id: string; file: File }) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api.upload<Experiment>(`/experiments/${id}/attachments`, form);
+  });
