@@ -7,7 +7,7 @@ Slack is a study workspace that turns a student's timetable, lecture slides, syl
 | **Area** | Architecture, scoring and backend core | Document processing, data and tests | Frontend and interface design |
 | **Commits** | 5 | 6 | 5 |
 | **Lines added** (excluding lockfile) | ~5,100 | ~4,500 | ~3,600 |
-| **GitHub** | vibhav-14 | lakshaykumar3861@gmail.com | suyash2006rawat@gmail.com |
+| **GitHub** | @vibhav-14 | @lakshay-kumar27 | @SuyashRawat2 |
 
 ## Vibhav Bhardwaj: project lead, architecture and backend core
 
