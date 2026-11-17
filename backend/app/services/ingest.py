@@ -130,7 +130,7 @@ def process_source(source_id: str) -> None:
 
 
 def _process(db: Session, src: m.Source) -> LectureDeck | None:
-    path = Path(src.path)
+    path = src.file
     ext = path.suffix.lower()
     if ext in IMAGE_EXT:
         raise IngestError("Photos and scans need text recognition, which isn't set up yet. Upload a PDF with selectable text, or the original slides.", retryable=False)
@@ -219,7 +219,7 @@ def ingest_deck(db: Session, src: m.Source, deck: LectureDeck) -> None:
     for i, outcome in enumerate(deck.outcomes, 1):
         ev("slides", f"Learning outcome {i}", outcome)
     for myth, truth in deck.misconceptions:
-        ev("slides", "Common misconception", f"Students often think “{myth}” In fact: {truth}")
+        ev("slides", "Common misconception", f"Students often think “{myth.rstrip('.')}”. In fact: {truth}")
 
     for i, q in enumerate(deck.questions, 1):
         db.add(
@@ -283,7 +283,7 @@ def add_claude_questions(db: Session, src: m.Source, deck: LectureDeck) -> int:
 
 
 def ingest_timetable(db: Session, src: m.Source) -> None:
-    classes = parse_timetable(src.path)
+    classes = parse_timetable(src.file)
     if not classes:
         raise IngestError("No class timetables found. Is this an aSc Timetables PDF export?", retryable=False)
     src.pages = len(classes)

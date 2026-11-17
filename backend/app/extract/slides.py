@@ -358,7 +358,7 @@ def _misconception_questions(s: Slide, pairs: list[tuple[str, str]]) -> list[Gen
                     prompt="Which of these statements is correct?",
                     options=options,
                     answer_index=0,
-                    explanation=f"A common misconception is “{myth}”. In fact: {truth}",
+                    explanation=f"A common misconception is “{myth.rstrip('.')}”. In fact: {truth}",
                     slide=s.number,
                     slide_title=s.title,
                 )

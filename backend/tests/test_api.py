@@ -56,3 +56,12 @@ def test_full_flow(tmp_path):
         bad = next(s for s in c.get("/sources").json() if s["id"] == bad["id"])
         assert bad["status"] == "failed" and bad["retryable"] is False
         assert c.post(f"/sources/{bad['id']}/retry").status_code == 400
+
+
+def test_source_file_survives_moving_the_project():
+    """Uploads resolve against UPLOAD_DIR, even for rows saved with an old absolute path."""
+    from app.config import UPLOAD_DIR
+    from app.models import Source
+
+    old = Source(path=r"C:\\old\\project\\backend\\data\\uploads\\abc123.pptx".replace("\\\\", "\\"))
+    assert old.file == UPLOAD_DIR / "abc123.pptx"

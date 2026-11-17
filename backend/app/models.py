@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+from pathlib import Path
 
 from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from .config import UPLOAD_DIR
 from .db import Base
 
 
@@ -80,6 +82,11 @@ class Source(Base):
     error: Mapped[str | None] = mapped_column(Text)
     retryable: Mapped[bool] = mapped_column(Boolean, default=True)
     extracted: Mapped[dict | None] = mapped_column(JSON)
+
+    @property
+    def file(self) -> Path:
+        """The stored upload. Always under UPLOAD_DIR, so the project folder can move."""
+        return UPLOAD_DIR / Path(self.path).name
 
 
 class Evidence(Base):

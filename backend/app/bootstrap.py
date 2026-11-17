@@ -73,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
         sid = uuid.uuid4().hex[:12]
         dest = UPLOAD_DIR / f"{sid}{f.suffix.lower()}"
         shutil.copyfile(f, dest)
-        db.add(m.Source(id=sid, kind=args.kind or infer_kind(f), filename=f.name, path=str(dest), size_kb=max(1, f.stat().st_size // 1024)))
+        db.add(m.Source(id=sid, kind=args.kind or infer_kind(f), filename=f.name, path=dest.name, size_kb=max(1, f.stat().st_size // 1024)))
         db.commit()
         ids.append(sid)
     db.close()

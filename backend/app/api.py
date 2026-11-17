@@ -233,7 +233,7 @@ def generate_topic_questions(topic_id: str, db: Session = Depends(get_db)):
     ).first()
     if not src:
         raise HTTPException(400, "Upload this topic's lecture slides first. Questions are only written from your own material.")
-    added = add_claude_questions(db, src, parse_deck(src.path))
+    added = add_claude_questions(db, src, parse_deck(src.file))
     db.refresh(src)
     if not added and (src.extracted or {}).get("aiError"):
         raise HTTPException(502, src.extracted["aiError"])
@@ -273,7 +273,7 @@ async def upload_source(
                 raise HTTPException(413, f"Files must be under {MAX_UPLOAD_MB} MB.")
             out.write(chunk)
     src = m.Source(
-        id=sid, subject_id=subjectId or None, kind=kind, filename=name, path=str(dest), size_kb=max(1, size // 1024),
+        id=sid, subject_id=subjectId or None, kind=kind, filename=name, path=dest.name, size_kb=max(1, size // 1024),
         status="queued" if ext in ALLOWED_EXT else "failed",
         error=None if ext in ALLOWED_EXT else "This file type isn't supported. Upload PDF, PPTX or TXT.",
         retryable=ext in ALLOWED_EXT,
@@ -303,7 +303,7 @@ def delete_source(source_id: str, db: Session = Depends(get_db)):
     s = db.get(m.Source, source_id)
     if not s:
         raise not_found("Source")
-    path = Path(s.path)
+    path = s.file
     db.delete(s)
     db.flush()
     # Topics that existed only because of this file go with it, unless studied.
