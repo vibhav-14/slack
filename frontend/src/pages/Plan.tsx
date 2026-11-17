@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarRange, Clock, Info, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { usePlan, useRegeneratePlan, useSubjects, useTopics } from "../api/hooks";
 import type { PlanSession } from "../api/types";
 import { fmt, minutesLabel, relativeDays, timeAgo, todayISO } from "../lib/dates";
@@ -45,31 +45,24 @@ export function PlanPage() {
   return (
     <div className="page">
       <h1 className="page-title">Revision plan</h1>
-      <p className="page-lede">
-        Built from your priorities and timetable: high-priority topics come first, a subject moves up on days you have
-        its lecture, each topic gets a practice quiz two days after you study it, and the week before each exam is kept
-        for revision.
-      </p>
+      <p className="page-lede">High priority first, around your timetable. A subject moves up on days you have its class.</p>
 
       {estimated.length > 0 && (
-        <div className="callout" style={{ marginTop: "var(--s-5)" }}>
-          <Info size={18} aria-hidden="true" />
-          <p>
-            Exam dates for {estimated.map((s) => s.name).join(", ")} are estimates.{" "}
-            <Link to="/settings#exams">Set the real dates</Link> and rebuild the plan so nothing lands after an exam.
-          </p>
-        </div>
+        <p className="callout">
+          The exam date for {estimated.map((s) => s.name).join(", ")} is a guess.{" "}
+          <Link to="/settings#exams">Set the real date</Link> and rebuild so nothing lands after an exam.
+        </p>
       )}
 
       <dl className="props">
         <dt>
-          <CalendarRange size={16} aria-hidden="true" /> Runs until
+          Runs until
         </dt>
         <dd>
           {fmt.weekday(lastDate)} <span className="muted">· {relativeDays(lastDate)}</span>
         </dd>
         <dt>
-          <Clock size={16} aria-hidden="true" /> Study time left
+          Study time left
         </dt>
         <dd>
           {minutesLabel(remainingMins)}
@@ -119,9 +112,9 @@ export function PlanPage() {
           return (
             <div key={date}>
               {sessions.length > 0 && (
-                <>
-                  <div className={`day-head${date === now ? " is-today" : ""}`}>
-                    <h3>{fmt.weekday(date)}</h3>
+                <div className={`plan-day${date === now ? " is-today" : ""}`}>
+                  <div className="hang">
+                    <h3>{date === now ? "Today" : fmt.weekday(date)}</h3>
                     <span className="small muted">{minutesLabel(mins)}</span>
                   </div>
                   <ul className="sessions">
@@ -130,7 +123,7 @@ export function PlanPage() {
                       return <SessionRow key={s.id} session={s} topic={t} subject={t && subjectById.get(t.subjectId)} />;
                     })}
                   </ul>
-                </>
+                </div>
               )}
               {exams && (
                 <p className="exam-marker">

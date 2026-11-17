@@ -28,6 +28,7 @@ h2,
 h3,
 h4 {
   margin: 0;
+  font-family: var(--font-display);
   line-height: var(--lh-tight);
   font-weight: 700;
   text-wrap: balance;
@@ -39,7 +40,7 @@ p {
 }
 
 a {
-  color: var(--primary);
+  color: var(--ink);
   text-decoration-thickness: 1px;
   text-underline-offset: 0.2em;
 }

@@ -57,10 +57,7 @@ export function SourcesPage() {
   return (
     <div className="page">
       <h1 className="page-title">Sources</h1>
-      <p className="page-lede">
-        The material everything else is built from. Your timetable gives subjects and labs; lecture slides give topics,
-        what the assessment will ask, and quiz questions; past papers and the syllabus sharpen the rankings.
-      </p>
+      <p className="page-lede">Everything Slack knows comes from these files.</p>
 
       <UploadArea subjects={subjects.data ?? []} />
 

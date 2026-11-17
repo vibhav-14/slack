@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ChevronRight, Info } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useSubjects, useTopics, useUnitsLookup } from "../api/hooks";
 import type { PriorityTier, Subject, Topic } from "../api/types";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
@@ -69,30 +69,19 @@ export function PrioritiesPage() {
       <div className="page-head">
         <div>
           <h1 className="page-title">Priorities</h1>
-          <p className="page-lede">
-            Every topic, ranked by the evidence in your material: what the slides say the assessment will ask, how
-            often it's examined, how many marks it carries, and how well you answer it. Open a row to see why.
-          </p>
+          <p className="page-lede">What to study first, and the evidence for it. Open a row to see the marking.</p>
         </div>
       </div>
 
-      <dl className="props">
-        <dt>High priority</dt>
-        <dd>{plural(counts.high, "topic")}</dd>
-        <dt>Medium</dt>
-        <dd>{plural(counts.medium, "topic")}</dd>
-        <dt>Low</dt>
-        <dd>{plural(counts.low, "topic")}</dd>
-      </dl>
+      <p className="tally">
+        {plural(counts.high, "topic")} high, {counts.medium} medium, {counts.low} low.
+      </p>
 
       {missing.length > 0 && (
-        <div className="callout" style={{ marginTop: "var(--s-5)" }}>
-          <Info size={18} aria-hidden="true" />
-          <p>
-            Not counted yet: {missing.join(", ").toLowerCase()}. <Link to="/sources">Upload past papers or the syllabus</Link>{" "}
-            and rankings will take them into account.
-          </p>
-        </div>
+        <p className="callout">
+          Not marked yet: {missing.join(", ").toLowerCase()}. <Link to="/sources">Add past papers or the syllabus</Link> and
+          these get counted.
+        </p>
       )}
 
       <section className="section">
@@ -155,16 +144,15 @@ export function PriorityTable({
     });
 
   return (
-    <div className="table-wrap">
-      <table className="table table-stack">
+    <div className="table-wrap hanging">
+      <table className="table table-stack table-priorities">
         <thead>
           <tr>
+            <th className="col-score">Score</th>
             <th className="col-fit hide-sm">
               <span className="sr-only">Details</span>
             </th>
             <th>Topic</th>
-            <th>Priority</th>
-            <th>Score</th>
             <th className="col-num">Past papers</th>
             <th className="col-num">Quiz accuracy</th>
             <th>Status</th>
@@ -177,6 +165,10 @@ export function PriorityTable({
             return (
               <Fragment key={t.id}>
                 <tr className={isOpen ? "expanded" : undefined}>
+                  <td className="col-score">
+                    <Score score={t.priority.score} tier={t.priority.tier} />
+                    <PriorityTag tier={t.priority.tier} />
+                  </td>
                   <td className="col-fit hide-sm">
                     <button
                       type="button"
@@ -198,12 +190,6 @@ export function PriorityTable({
                       {unitTitle(t.unitId)}
                     </span>
                   </td>
-                  <td data-label="Priority">
-                    <PriorityTag tier={t.priority.tier} />
-                  </td>
-                  <td data-label="Score">
-                    <Score score={t.priority.score} />
-                  </td>
                   <td className="col-num" data-label="Past papers">
                     {t.papers.total ? `${t.papers.asked} of ${t.papers.total}` : <span className="muted">—</span>}
                   </td>
@@ -216,10 +202,11 @@ export function PriorityTable({
                 </tr>
                 {isOpen && (
                   <tr className="detail-row" id={`why-${t.id}`}>
-                    <td colSpan={7} style={{ padding: "var(--s-2) var(--s-3) var(--s-5) 2.75rem" }}>
+                    <td />
+                    <td colSpan={5}>
                       <FactorList priority={t.priority} />
                       <p className="small" style={{ marginTop: "var(--s-4)" }}>
-                        <Link to={`/topics/${t.id}`}>See all {t.evidenceCount} pieces of evidence</Link>
+                        <Link to={`/topics/${t.id}`}>All {t.evidenceCount} pieces of evidence</Link>
                       </p>
                     </td>
                   </tr>

@@ -45,10 +45,6 @@ export function LabsPage() {
   return (
     <div className="page">
       <h1 className="page-title">Lab records</h1>
-      <p className="page-lede">
-        Every experiment, its record status and what's left to write. Records go from draft to written, then checked by
-        your lab instructor.
-      </p>
 
       <dl className="props">
         <dt>Not yet checked</dt>

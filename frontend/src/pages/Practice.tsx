@@ -55,9 +55,6 @@ export function PracticePage() {
   return (
     <div className="page">
       <h1 className="page-title">Practice</h1>
-      <p className="page-lede">
-        Short multiple-choice quizzes. Every answer updates your concept accuracy, which feeds back into topic priorities.
-      </p>
 
       <section className="section" aria-labelledby="new-quiz">
         <SectionHead id="new-quiz" title="Start a quiz" />

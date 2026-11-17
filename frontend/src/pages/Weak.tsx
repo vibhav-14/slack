@@ -37,10 +37,9 @@ export function WeakPage() {
     <div className="page">
       <div className="page-head">
         <div>
-          <h1 className="page-title">Weak concepts</h1>
+          <h1 className="page-title">Weak spots</h1>
           <p className="page-lede">
-            Concepts you've answered correctly less than {WEAK_THRESHOLD * 100}% of the time, after at least three
-            attempts. Practising them raises your accuracy and lowers the topic's priority.
+            Anything under {WEAK_THRESHOLD * 100}% after at least three answers.
           </p>
         </div>
         {weak.length > 0 && (

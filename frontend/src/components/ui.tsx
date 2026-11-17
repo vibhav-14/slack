@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
+import { Circled } from "./Marks";
 import type { PriorityTier, RecordStatus, SourceStatus, TopicStatus } from "../api/types";
 
 // ---------------------------------------------------------------- button
@@ -34,25 +35,9 @@ export function Button({
 // ------------------------------------------------------------------ tags
 
 const tierLabel: Record<PriorityTier, string> = { high: "High", medium: "Medium", low: "Low" };
-const tierBars: Record<PriorityTier, number> = { high: 3, medium: 2, low: 1 };
 
 export function PriorityTag({ tier }: { tier: PriorityTier }) {
-  return (
-    <span className={`tag tag-${tier}`}>
-      <Signal level={tierBars[tier]} />
-      {tierLabel[tier]}
-    </span>
-  );
-}
-
-function Signal({ level }: { level: number }) {
-  return (
-    <span className="signal" aria-hidden="true">
-      {[1, 2, 3].map((n) => (
-        <i key={n} className={n <= level ? "on" : undefined} />
-      ))}
-    </span>
-  );
+  return <span className={`prio prio-${tier}`}>{tierLabel[tier]}</span>;
 }
 
 export const topicStatusLabel: Record<TopicStatus, string> = {
@@ -62,7 +47,7 @@ export const topicStatusLabel: Record<TopicStatus, string> = {
 };
 
 export function TopicStatusTag({ status }: { status: TopicStatus }) {
-  const cls = status === "done" ? "tag-done" : status === "in_progress" ? "tag-progress" : "tag-low";
+  const cls = status === "done" ? "tag-done" : status === "in_progress" ? "tag-progress" : "tag-quiet";
   return <span className={`tag ${cls}`}>{topicStatusLabel[status]}</span>;
 }
 
@@ -87,7 +72,7 @@ export function SourceStatusTag({ status }: { status: SourceStatus }) {
         </span>
       );
     default:
-      return <span className="tag tag-low">Queued</span>;
+      return <span className="tag tag-quiet">Queued</span>;
   }
 }
 
@@ -104,16 +89,16 @@ export function Meter({ value, label, tone }: { value: number; label: string; to
       aria-valuemax={100}
       aria-valuenow={Math.round(pct)}
     >
-      <span style={{ width: `${pct}%` }} />
+      <span style={{ transform: `scaleX(${pct / 100})` }} />
     </div>
   );
 }
 
-export function Score({ score }: { score: number }) {
+/** The score as an examiner writes it: a big numeral, ringed in red when it's high priority. */
+export function Score({ score, tier }: { score: number; tier: PriorityTier }) {
   return (
-    <span className="score">
-      <Meter value={score / 100} label={`Priority score ${score} of 100`} />
-      <span aria-hidden="true">{score}</span>
+    <span className="score" aria-label={`Priority score ${score} of 100`}>
+      {tier === "high" ? <Circled>{score}</Circled> : score}
     </span>
   );
 }

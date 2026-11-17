@@ -1,5 +1,4 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { CalendarClock, ClipboardList, FileStack, ListChecks, UserRound } from "lucide-react";
 import { useCreateQuiz, useSources, useSubject, useSubjects, useTimetable, useUnitsLookup } from "../api/hooks";
 import { fmt, relativeDays } from "../lib/dates";
 import { TT_DAYS } from "../lib/labels";
@@ -58,7 +57,7 @@ export function SubjectPage() {
 
       <dl className="props">
         <dt>
-          <CalendarClock size={16} aria-hidden="true" /> End-sem exam
+          End-sem exam
         </dt>
         <dd>
           {fmt.weekday(subject.examDate)} <span className="muted">· {relativeDays(subject.examDate)}</span>
@@ -71,7 +70,7 @@ export function SubjectPage() {
         {subject.faculty && (
           <>
             <dt>
-              <UserRound size={16} aria-hidden="true" /> Faculty
+              Faculty
             </dt>
             <dd>{subject.faculty}</dd>
           </>
@@ -79,7 +78,7 @@ export function SubjectPage() {
         {lectures.length > 0 && (
           <>
             <dt>
-              <CalendarClock size={16} aria-hidden="true" /> Lectures
+              Lectures
             </dt>
             <dd>
               {lectures.map((s) => `${TT_DAYS[s.day].slice(0, 3)} ${s.start}`).join(" · ")}
@@ -90,7 +89,7 @@ export function SubjectPage() {
         {pattern && (
           <>
             <dt>
-              <ClipboardList size={16} aria-hidden="true" /> Exam pattern
+              Exam pattern
             </dt>
             <dd>
               <span>
@@ -112,7 +111,7 @@ export function SubjectPage() {
         {topics.length > 0 && (
           <>
             <dt>
-              <ListChecks size={16} aria-hidden="true" /> Coverage
+              Coverage
             </dt>
             <dd>
               <span style={{ width: "8rem" }}>
@@ -125,7 +124,7 @@ export function SubjectPage() {
           </>
         )}
         <dt>
-          <FileStack size={16} aria-hidden="true" /> Sources
+          Sources
         </dt>
         <dd>
           <Link to="/sources">

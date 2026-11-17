@@ -1,5 +1,4 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { BookOpen, CircleHelp, FileText, Gauge, GraduationCap, ListChecks, NotebookPen, Presentation, Signal, Target } from "lucide-react";
 import { useCreateQuiz, useGenerateQuestions, useProfile, useSubjects, useTopic, useUnitsLookup } from "../api/hooks";
 import type { Evidence, EvidenceKind } from "../api/types";
 import { timeAgo } from "../lib/dates";
@@ -10,12 +9,12 @@ import { FactorList } from "../components/FactorList";
 import { TopicStatusSelect } from "../components/TopicStatusSelect";
 import { useToast } from "../components/Toast";
 
-const GROUPS: { kind: EvidenceKind; title: string; icon: typeof FileText }[] = [
-  { kind: "assessment", title: "What you'll be assessed on", icon: Target },
-  { kind: "past_paper", title: "Past paper questions", icon: FileText },
-  { kind: "syllabus", title: "Syllabus and course outcomes", icon: BookOpen },
-  { kind: "slides", title: "From the lecture slides", icon: Presentation },
-  { kind: "notes", title: "From your notes", icon: NotebookPen },
+const GROUPS: { kind: EvidenceKind; title: string }[] = [
+  { kind: "assessment", title: "What you'll be assessed on" },
+  { kind: "past_paper", title: "Past paper questions" },
+  { kind: "syllabus", title: "Syllabus and course outcomes" },
+  { kind: "slides", title: "From the lecture slides" },
+  { kind: "notes", title: "From your notes" },
 ];
 
 export function TopicPage() {
@@ -74,14 +73,14 @@ export function TopicPage() {
 
       <dl className="props">
         <dt>
-          <Signal size={16} aria-hidden="true" /> Priority
+          Priority
         </dt>
         <dd>
           <PriorityTag tier={t.priority.tier} />
           <span className="num">{t.priority.score} / 100</span>
         </dd>
         <dt>
-          <ListChecks size={16} aria-hidden="true" /> Status
+          Status
         </dt>
         <dd>
           <TopicStatusSelect topic={t} size="sm" />
@@ -89,7 +88,7 @@ export function TopicPage() {
         {(t.courseOutcome || t.bloom) && (
           <>
             <dt>
-              <GraduationCap size={16} aria-hidden="true" /> Outcome
+              Outcome
             </dt>
             <dd>
               {[t.courseOutcome, t.bloom && `Bloom ${t.bloom}`].filter(Boolean).join(" · ")}
@@ -98,7 +97,7 @@ export function TopicPage() {
           </>
         )}
         <dt>
-          <Gauge size={16} aria-hidden="true" /> Quiz accuracy
+          Quiz accuracy
         </dt>
         <dd>
           {t.mastery === null ? (
@@ -108,7 +107,7 @@ export function TopicPage() {
           )}
         </dd>
         <dt>
-          <CircleHelp size={16} aria-hidden="true" /> Quiz questions
+          Quiz questions
         </dt>
         <dd>
           <span className="num">{nQuestions}</span>
@@ -124,7 +123,7 @@ export function TopicPage() {
           )}
         </dd>
         <dt>
-          <FileText size={16} aria-hidden="true" /> In past papers
+          In past papers
         </dt>
         <dd>
           {t.papers.total ? (
@@ -143,17 +142,13 @@ export function TopicPage() {
       </dl>
 
       <section className="section" aria-labelledby="why">
-        <SectionHead id="why" title="Why it's ranked here" note="Points each factor contributes. Factors without evidence yet aren't counted." />
+        <SectionHead id="why" title="How it was marked" />
         <FactorList priority={t.priority} />
       </section>
 
       <section className="section" aria-labelledby="evidence">
-        <SectionHead
-          id="evidence"
-          title="Evidence"
-          note={`${t.evidence.length} item${t.evidence.length === 1 ? "" : "s"} taken from your sources.`}
-        />
-        {GROUPS.map(({ kind, title, icon }) => {
+        <SectionHead id="evidence" title="Evidence" />
+        {GROUPS.map(({ kind, title }) => {
           const items = t.evidence.filter((e) => e.kind === kind);
           if (!items.length) return null;
           return (
@@ -161,7 +156,7 @@ export function TopicPage() {
               <h3 className="evidence-group-title">{title}</h3>
               <ul className="evidence">
                 {items.map((e) => (
-                  <EvidenceRow key={e.id} e={e} Icon={icon} terms={terms} />
+                  <EvidenceRow key={e.id} e={e} terms={terms} />
                 ))}
               </ul>
             </div>
@@ -170,7 +165,7 @@ export function TopicPage() {
       </section>
 
       <section className="section" aria-labelledby="concepts">
-        <SectionHead id="concepts" title="Concepts" note="From the session agenda. Tracked from your quiz answers; under 60% counts as weak." />
+        <SectionHead id="concepts" title="Concepts" note="Under 60% counts as weak." />
         <div className="table-wrap">
           <table className="table table-stack">
             <thead>
@@ -212,27 +207,16 @@ export function TopicPage() {
   );
 }
 
-function EvidenceRow({ e, Icon, terms }: { e: Evidence; Icon: typeof FileText; terms: string[] }) {
+function EvidenceRow({ e, terms }: { e: Evidence; terms: string[] }) {
   return (
     <li className="evidence-item">
-      <span className="evidence-icon" aria-hidden="true">
-        <Icon size={16} />
+      <span className="hang margin-mark">
+        {e.marks !== null ? `${e.marks} marks` : e.level ? <span title={`Bloom level ${e.level}`}>{e.level}</span> : null}
       </span>
       <div style={{ minWidth: 0 }}>
         <div className="evidence-label">{e.label}</div>
         <p className="evidence-quote">{e.kind === "past_paper" ? <Highlight text={e.excerpt} terms={terms} /> : e.excerpt}</p>
       </div>
-      {e.marks !== null ? (
-        <span className="marks">
-          {e.marks} <span className="muted small">marks</span>
-        </span>
-      ) : e.level ? (
-        <span className="tag tag-plain" title={`Bloom level ${e.level}`}>
-          {e.level}
-        </span>
-      ) : (
-        <span />
-      )}
     </li>
   );
 }

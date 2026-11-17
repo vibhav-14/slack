@@ -16,7 +16,7 @@ export function ClassList({ slots, live = true }: { slots: TimetableSlot[]; live
         const state = toMin(s.end) <= mins ? "past" : toMin(s.start) <= mins ? "now" : "next";
         return (
           <li key={s.id} className={`class-row is-${state}`}>
-            <span className="class-time num">
+            <span className="class-time hang">
               {s.start}–{s.end}
             </span>
             <div style={{ minWidth: 0 }}>

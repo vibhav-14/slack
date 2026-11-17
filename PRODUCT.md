@@ -6,7 +6,7 @@ product
 
 ## Users
 
-A single university student (working example: B.Tech CSE, semester 5) managing their own subjects. They open it on a laptop in the evening or between classes, and on their phone the night before an exam. They arrive with a pile of material — the official syllabus PDF, scanned notes, five or six past end-semester papers, the exam pattern from the department notice — and limited time. The job: know what to study next, and prove to themselves they actually know it.
+A single university student (working example: B.Tech CSE, semester 3) managing their own subjects. They open it on a laptop in the evening or between classes, and on their phone the night before an exam. They arrive with a pile of material — the official syllabus PDF, scanned notes, five or six past end-semester papers, the exam pattern from the department notice — and limited time. The job: know what to study next, and prove to themselves they actually know it.
 
 ## Product Purpose
 
@@ -16,7 +16,7 @@ Success: the student can open the app, see the three things worth doing today, a
 
 ## Brand Personality
 
-Calm, exact, trustworthy. A well-kept notebook rather than a tutor that talks at you. Voice is plain and specific ("Appeared in 4 of 6 papers, avg 9 marks") — never motivational filler, never exclamation marks, never "AI-powered". The interface should feel like Notion: document-first, quiet, generous whitespace, content in the foreground.
+Calm, exact, trustworthy. A well-kept notebook rather than a tutor that talks at you. Voice is plain and specific ("Appeared in 4 of 6 papers, avg 9 marks") — never motivational filler, never exclamation marks, never "AI-powered". The interface is a marked answer sheet: blue-black ink on white, a red margin line, and scores, times and Bloom levels written in the margin the way an examiner marks a paper. Document-first and quiet, with no pills, progress-bar dashboards or icon-per-link navigation.
 
 ## Anti-references
 
@@ -30,7 +30,7 @@ Calm, exact, trustworthy. A well-kept notebook rather than a tutor that talks at
 1. **Show the evidence.** Every priority, weak concept and plan item links back to the source material that produced it. A score without its reasons is not shown.
 2. **Today first.** The default view answers "what do I do now?" before anything else.
 3. **The document is the interface.** Pages read like well-structured notes: a title, a property row, then content. Tables and lists over cards.
-4. **Quiet until it matters.** Colour is reserved for priority, state and the highlighter for evidence; everything else is ink on white.
+4. **Quiet until it matters.** Red pen is reserved for what needs attention and the highlighter for evidence; everything else is ink on white.
 5. **Readable by everyone.** Legibility is a feature, not a setting buried away.
 
 ## Accessibility & Inclusion

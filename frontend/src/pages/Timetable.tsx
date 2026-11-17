@@ -41,7 +41,7 @@ export function TimetablePage() {
   const breakAfter = periods.findIndex((p, i) => i < periods.length - 1 && gapMinutes(p.end, periods[i + 1].start) >= 30);
 
   return (
-    <div className="page page-wide">
+    <div className="page">
       <h1 className="page-title">Timetable</h1>
       <dl className="props">
         <dt>Class</dt>

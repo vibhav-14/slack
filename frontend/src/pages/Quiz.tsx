@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { Cross, Tick } from "../components/Marks";
 import { useQuiz, useSubmitQuiz, useTopics } from "../api/hooks";
 import type { Quiz } from "../api/types";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
@@ -99,7 +100,8 @@ function TakeQuiz({ quiz }: { quiz: Quiz }) {
           <span className="num">{answered} answered</span>
         </div>
 
-        <div key={question.id}>
+        <div key={question.id} className="q-block">
+          <span className="hang margin-mark">Q{index + 1}</span>
           <p className="q-concept">{question.concept}</p>
           <p className="q-prompt" id={`prompt-${question.id}`}>
             {question.prompt}
@@ -206,8 +208,13 @@ function Results({ quiz }: { quiz: Quiz }) {
               const right = chosen === q.answerIndex;
               return (
                 <li key={q.id} className="review-item">
+                  <span className="hang margin-mark">
+                    {right ? <Tick /> : <Cross />}
+                    Q{i + 1}
+                  </span>
                   <p className="q-concept">
-                    {i + 1}. {q.concept} · <strong style={{ color: right ? "var(--success)" : "var(--danger)" }}>{right ? "Correct" : chosen === null ? "Not answered" : "Incorrect"}</strong>
+                    {q.concept}
+                    {chosen === null && " · Not answered"}
                   </p>
                   <p className="q-prompt">{q.prompt}</p>
                   <div className="q-options">

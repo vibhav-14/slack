@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { CalendarClock, Clock, FlaskConical, FileWarning, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useCreateQuiz, useLabs, useOverview, useSources, useTopics } from "../api/hooks";
 import { daysUntil, fmt, minutesLabel, relativeDays, today } from "../lib/dates";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
@@ -66,7 +66,7 @@ export function TodayPage() {
         {nextExam && (
           <>
             <dt>
-              <CalendarClock size={16} aria-hidden="true" /> Next exam
+              Next exam
             </dt>
             <dd>
               <Link to={`/subjects/${nextExam.id}`}>{nextExam.name}</Link>
@@ -78,7 +78,7 @@ export function TodayPage() {
           </>
         )}
         <dt>
-          <Clock size={16} aria-hidden="true" /> Study left today
+          Study left today
         </dt>
         <dd>
           {o.todaySessions.length ? (
@@ -93,7 +93,7 @@ export function TodayPage() {
           )}
         </dd>
         <dt>
-          <FlaskConical size={16} aria-hidden="true" /> Records due this week
+          Records due
         </dt>
         <dd>
           {dueThisWeek.length ? (
@@ -107,24 +107,21 @@ export function TodayPage() {
       </dl>
 
       {failed.length > 0 && (
-        <div className="callout callout-danger" style={{ marginTop: "var(--s-5)" }} role="status">
-          <FileWarning size={18} aria-hidden="true" />
-          <p>
-            {failed.length === 1 ? (
-              <>
-                <strong>{failed[0].filename}</strong> couldn't be read, so it isn't counted as evidence.{" "}
-              </>
-            ) : (
-              <>{failed.length} files couldn't be read, so they aren't counted as evidence. </>
-            )}
-            <Link to="/sources">See why in Sources</Link>
-          </p>
-        </div>
+        <p className="callout callout-danger" role="status">
+          {failed.length === 1 ? (
+            <>
+              <strong>{failed[0].filename}</strong> couldn't be read, so it isn't counted.{" "}
+            </>
+          ) : (
+            <>{failed.length} files couldn't be read, so they aren't counted. </>
+          )}
+          <Link to="/sources">See why</Link>
+        </p>
       )}
 
       {o.todayClasses.length > 0 && (
         <section className="section" aria-labelledby="today-classes">
-          <SectionHead id="today-classes" title="Classes today">
+          <SectionHead id="today-classes" title="Classes">
             <Link to="/timetable" className="btn btn-sm">
               Timetable
             </Link>
@@ -134,7 +131,7 @@ export function TodayPage() {
       )}
 
       <section className="section" aria-labelledby="today-sessions">
-        <SectionHead id="today-sessions" title="Study today" note="From your revision plan, highest priority first.">
+        <SectionHead id="today-sessions" title="Study">
           <Link to="/plan" className="btn btn-sm">
             Full plan
           </Link>
@@ -155,7 +152,7 @@ export function TodayPage() {
 
       <div className="two-col">
         <section className="section" aria-labelledby="today-weak">
-          <SectionHead id="today-weak" title="Weakest concepts">
+          <SectionHead id="today-weak" title="Weak spots">
             {o.weakest.length > 0 && (
               <Button size="sm" onClick={practiseWeak} busy={createQuiz.isPending}>
                 Practise these
@@ -199,7 +196,7 @@ export function TodayPage() {
         </section>
 
         <section className="section" aria-labelledby="today-labs">
-          <SectionHead id="today-labs" title="Lab records due" />
+          <SectionHead id="today-labs" title="Records due" />
           {o.dueExperiments.length ? (
             <ul className="list-plain">
               {o.dueExperiments.map((e) => {
@@ -233,7 +230,7 @@ export function TodayPage() {
 
       {withTopics.length > 0 && (
         <section className="section" aria-labelledby="today-coverage">
-          <SectionHead id="today-coverage" title="Syllabus coverage" note="Topics marked done, per subject." />
+          <SectionHead id="today-coverage" title="Syllabus covered" />
           <ul className="coverage">
             {withTopics.map((s) => (
               <li key={s.id}>
